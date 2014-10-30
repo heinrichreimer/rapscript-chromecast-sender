@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>RapScript Google Cast Sender example</title>
+	<script type="text/javascript" src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+	<script type="text/javascript">
+	var applicationID = 'E8F3385E';
+	var namespace = 'urn:x-cast:net.rapscript.cast';
+	var session = null;
+
+	var prefs = {
+		lang: 'de',
+		skill: 'adv',
+		interval: 4
+	};
+
+
+	/**
+	 * Call initialization for Cast
+	 */
+	if (!chrome.cast || !chrome.cast.isAvailable) {
+		setTimeout(initializeCastApi, 1000);
+	}
+
+	/**
+	 * initialization
+	 */
+	function initializeCastApi() {
+		var sessionRequest = new chrome.cast.SessionRequest(applicationID);
+		var apiConfig = new chrome.cast.ApiConfig(sessionRequest,
+			sessionListener,
+			receiverListener);
+
+		chrome.cast.initialize(apiConfig, onInitSuccess, onError);
+	};
+
+	/**
+	 * initialization success callback
+	 */
+	function onInitSuccess() {
+		appendMessage("onInitSuccess");
+	}
+
+	/**
+	 * initialization error callback
+	 */
+	function onError(message) {
+		appendMessage("onError: "+JSON.stringify(message));
+	}
+
+	/**
+	 * generic success callback
+	 */
+	function onSuccess(message) {
+		appendMessage("onSuccess: "+message);
+	}
+
+	/**
+	 * callback on success for stopping app
+	 */
+	function onStopAppSuccess() {
+		appendMessage('onStopAppSuccess');
+	}
+
+	/**
+	 * session listener during initialization
+	 */
+	function sessionListener(e) {
+		appendMessage('New session ID:' + e.sessionId);
+		session = e;
+		session.addUpdateListener(sessionUpdateListener);  
+		session.addMessageListener(namespace, receiverMessage);
+	}
+
+	/**
+	 * listener for session updates
+	 */
+	function sessionUpdateListener(isAlive) {
+		var message = isAlive ? 'Session Updated' : 'Session Removed';
+		message += ': ' + session.sessionId;
+		appendMessage(message);
+		if (!isAlive) {
+			session = null;
+		}
+	};
+
+	/**
+	 * utility function to log messages from the receiver
+	 * @param {string} namespace The namespace of the message
+	 * @param {string} message A message string
+	 */
+	function receiverMessage(namespace, message) {
+		appendMessage("receiverMessage: "+namespace+", "+message);
+	};
+
+	/**
+	 * receiver listener during initialization
+	 */
+	function receiverListener(e) {
+		if( e === 'available' ) {
+			appendMessage("receiver found");
+		}
+		else {
+			appendMessage("receiver list empty");
+		}
+	}
+
+	/**
+	 * stop app/session
+	 */
+	function stopApp() {
+		session.stop(onStopAppSuccess, onError);
+	}
+
+	/**
+	 * send a message to the receiver using the custom namespace
+	 * receiver CastMessageBus message handler will be invoked
+	 * @param {string} message A message string
+	 */
+	function sendMessage(message) {
+		if (session!=null) {
+			session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
+		}
+		else {
+			chrome.cast.requestSession(function(e) {
+					session = e;
+					session.sendMessage(namespace, message, onSuccess.bind(this, "Message sent: " + message), onError);
+				}, onError);
+		}
+	}
+
+	/**
+	 * append message to debug message window
+	 * @param {string} message A message string
+	 */
+	function appendMessage(message) {
+		console.log(message);
+		var dw = document.getElementById("debugmessage");
+		dw.innerHTML += '\n' + JSON.stringify(message);
+	};
+
+	/**
+	 * utility function to handle text typed in by user in the input field
+	 */
+	function update() {
+		sendMessage(prefs);
+	}
+	function updateLanguage(language) {
+		prefs.lang = language;
+		update();
+	}
+	function updateSkill(skill) {
+		prefs.skill = skill;
+		update();
+	}
+	function updateSpeed(speed) {
+		prefs.interval = speed;
+		update();
+	}
+
+	/**
+	 * handler for the transcribed text from the speech input
+	 * @param {string} words A transcibed speech string
+	 */
+	function transcribe(words) {
+		sendMessage(words);
+	}
+	</script>
+</head>
+<body>
+
+	<table>
+		<tr>
+			<td><a href="#" onclick="updateLanguage('de');">de</a></td>
+			<td><a href="#" onclick="updateLanguage('en');">en</a></td>
+			<td><a href="#" onclick="updateLanguage('es');">es</a></td>
+			<td><a href="#" onclick="updateLanguage('fr');">fr</a></td>
+		</tr>
+	</table>
+	<table>
+		<tr>
+			<td><a href="#" onclick="updateSkill('beg');">beg</a></td>
+			<td><a href="#" onclick="updateSkill('adv');">adv</a></td>
+			<td><a href="#" onclick="updateSkill('pro');">pro</a></td>
+		</tr>
+	</table>
+	<table>
+		<tr>
+			<td><a href="#" onclick="updateSpeed(2);">2</a></td>
+			<td><a href="#" onclick="updateSpeed(3);">3</a></td>
+			<td><a href="#" onclick="updateSpeed(4);">4</a></td>
+			<td><a href="#" onclick="updateSpeed(5);">5</a></td>
+			<td><a href="#" onclick="updateSpeed(6);">6</a></td>
+			<td><a href="#" onclick="updateSpeed(7);">7</a></td>
+			<td><a href="#" onclick="updateSpeed(8);">8</a></td>
+			<td><a href="#" onclick="updateSpeed(9);">9</a></td>
+			<td><a href="#" onclick="updateSpeed(10);">10</a></td>
+			<td><a href="#" onclick="updateSpeed(11);">11</a></td>
+			<td><a href="#" onclick="updateSpeed(12);">12</a></td>
+		</tr>
+	</table>
+
+	<!-- Debbugging output -->
+	<div style="margin:10px; visibility:hidden;">
+		<textarea rows="20" cols="70" id="debugmessage">
+		</textarea>
+	</div>
+
+<script type="text/javascript">
+	document.getElementById("input").focus();
+</script>
+</body>
+</html>
