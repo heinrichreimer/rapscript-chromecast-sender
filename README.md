@@ -1,4 +1,4 @@
-RapScript-GoogleCast-Sender
+RapScript Chromecast sender
 ===========================
 
-Example how to cast words from RapScript
+_Example how to cast words from RapScript._
